@@ -2,9 +2,14 @@ import streamlit as st
 import cv2
 import numpy as np
 
+from PIL import Image
+from io import BytesIO
+import base64
+
 st.title("OpenCV Deep Learning based Face Detection")
 uploaded_file = st.file_uploader("Choose a file", type =['jpg','jpeg','png'])
 
+# Function for Detecting face and annotating with rectangles
 def detectFaceOpenCVDnn(net, frame, conf_threshold=0.5):
     # Create a copy of the image and find height and width
     frameOpencvDnn = frame.copy()
@@ -40,12 +45,22 @@ def detectFaceOpenCVDnn(net, frame, conf_threshold=0.5):
     return frameOpencvDnn, bboxes
 
 
+# Function to load the DNN model
 @st.cache(allow_output_mutation=True)
 def load_model():
     modelFile = "res10_300x300_ssd_iter_140000_fp16.caffemodel"
     configFile = "deploy.prototxt"
     net = cv2.dnn.readNetFromCaffe(configFile, modelFile)
     return net
+
+
+# Function to generate a download link for output file
+def get_image_download_link(img,filename,text):
+    buffered = BytesIO()
+    img.save(buffered, format="JPEG")
+    img_str = base64.b64encode(buffered.getvalue()).decode()
+    href =  f'<a href="data:file/txt;base64,{img_str}" download="{filename}">{text}</a>'
+    return href
 
 
 net = load_model()
@@ -71,6 +86,7 @@ if uploaded_file is not None:
     placeholders[1].image(out_image, channels='BGR')
     placeholders[1].text("Output Image")
 
-    button = st.button("Save Output Image to Disk")
-    if button:
-        cv2.imwrite("face_output.jpg",out_image)
+    # Convert opencv image to PIL
+    out_image = Image.fromarray(out_image[:,:,::-1])
+    # Create a link for downloading the output file
+    st.markdown(get_image_download_link(out_image, "face_output.jpg", 'Download Output Image'), unsafe_allow_html=True)
