@@ -3,7 +3,7 @@ import cv2
 import numpy as np
 
 st.title("OpenCV Deep Learning based Face Detection")
-uploaded_file = st.file_uploader("Choose a file", type =['jpg','jpeg','jfif','png'])
+uploaded_file = st.file_uploader("Choose a file", type =['jpg','jpeg','png'])
 
 def detectFaceOpenCVDnn(net, frame, conf_threshold=0.5):
     # Create a copy of the image and find height and width
@@ -59,12 +59,18 @@ if uploaded_file is not None:
     placeholders = st.columns(2)
     # Display Input image in the first placeholder
     placeholders[0].image(opencv_image, channels='BGR')
+    placeholders[0].text("Input Image")
 
     # Create a Slider and Get the threshold from the slider
-    conf_threshold = st.slider("SET Confidence Threshold", min_value = 0.01, max_value = 1.0, step = .01, value=0.5)
+    conf_threshold = st.slider("SET Confidence Threshold", min_value = 0.0, max_value = 1.0, step = .01, value=0.5)
 
     # Call the function to get detected faces
     out_image,_ = detectFaceOpenCVDnn(net, opencv_image, conf_threshold=conf_threshold)
 
     # Display Detected Faces
     placeholders[1].image(out_image, channels='BGR')
+    placeholders[1].text("Output Image")
+
+    button = st.button("Save Output Image to Disk")
+    if button:
+        cv2.imwrite("face_output.jpg",out_image)
