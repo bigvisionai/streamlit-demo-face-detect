@@ -33,7 +33,7 @@ def process_detections(frame, detections, conf_threshold=0.5):
             x2 = int(detections[0, 0, i, 5] * frame_w)
             y2 = int(detections[0, 0, i, 6] * frame_h)
             bboxes.append([x1, y1, x2, y2])
-            bb_line_thickness = max(1, int(round(frame_h / 150)))
+            bb_line_thickness = max(1, int(round(frame_h / 200)))
             # Draw bounding boxes around detected faces.
             cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), bb_line_thickness, cv2.LINE_8)
     return frame, bboxes
@@ -77,15 +77,15 @@ if img_file_buffer is not None:
     # Create a Slider and get the threshold from the slider.
     conf_threshold = st.slider("SET Confidence Threshold", min_value=0.0, max_value=1.0, step=.01, value=0.5)
 
+    # Call the face detection model to detect faces in the image.
+    detections = detectFaceOpenCVDnn(net, image)
+
     # Create a copy of the image.
     frame = image.copy()
     frame_h = image.shape[0]
     frame_w = image.shape[1]
-
-    # Call the face detection model to detect faces in the image.
-    detections = detectFaceOpenCVDnn(net, frame)
     # Process the detections based on the current confidence threshold.
-    out_image, _ = process_detections(frame, detections, conf_threshold=conf_threshold)
+    out_image, _ = process_detections(image, detections, conf_threshold=conf_threshold)
 
     # Display Detected faces.
     placeholders[1].image(out_image, channels='BGR')
