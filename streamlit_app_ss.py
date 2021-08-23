@@ -14,11 +14,11 @@ import base64
 # interacts with a widget). For example, the confidence threshold of the slider has
 # changed, but we are still working with the same image, we can detect that by
 # comparing the current file_uploaded_id (img_file_buffer.id) with the
-# previoud value (ss.file_uploaded_id) and if they are the same then we know we
+# previous value (ss.file_uploaded_id) and if they are the same then we know we
 # don't need to call the face detection model again. We just simply need to process
 # the previous set of detections.
 #---------------------------------------------------------------------------------------
-USE_SS = False
+USE_SS = True
 if USE_SS:
     ss = SessionState.get(file_uploaded_id=-1, # Initialize file uploaded index.
                           detections=None)     # Initialize detections.
@@ -97,7 +97,8 @@ if img_file_buffer is not None:
     frame_h = image.shape[0]
     frame_w = image.shape[1]
 
-    if USE_SS:# Check the loaded image is "new", if so call the face detection model function
+    if USE_SS:
+        # Check if the loaded image is "new", if so call the face detection model function.
         if img_file_buffer.id != ss.file_uploaded_id:
             # Set the file_uploaded_id equal to the ID of the file that was just uploaded.
             ss.file_uploaded_id = img_file_buffer.id
@@ -105,12 +106,10 @@ if img_file_buffer is not None:
             # with the current loaded image.
             ss.detections = detectFaceOpenCVDnn(net, frame)
         # Process the detections based on the current confidence threshold.
-        out_image, bboxes = process_detections(frame, ss.detections, conf_threshold=conf_threshold)
+        out_image, _ = process_detections(frame, ss.detections, conf_threshold=conf_threshold)
     else:
         detections = detectFaceOpenCVDnn(net, frame)
-        out_image, bboxes = process_detections(frame, detections, conf_threshold=conf_threshold)
-
-
+        out_image, _ = process_detections(frame, detections, conf_threshold=conf_threshold)
 
     # Display Detected faces.
     placeholders[1].image(out_image, channels='BGR')

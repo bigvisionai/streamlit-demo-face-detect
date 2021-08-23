@@ -81,7 +81,7 @@ if img_file_buffer is not None:
     # Call the face detection model to detect faces in the image.
     detections = detectFaceOpenCVDnn(net, frame)
     # Process the detections based on the current confidence threshold.
-    out_image, bboxes = process_detections(frame, detections, conf_threshold=conf_threshold)
+    out_image, _ = process_detections(frame, detections, conf_threshold=conf_threshold)
 
     # Display Detected faces.
     placeholders[1].image(out_image, channels='BGR')
