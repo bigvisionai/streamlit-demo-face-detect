@@ -9,6 +9,7 @@ import base64
 st.title("OpenCV Deep Learning based Face Detection")
 img_file_buffer = st.file_uploader("Choose a file", type=['jpg', 'jpeg', 'png'])
 
+
 # Function for detecting facses in an image.
 def detectFaceOpenCVDnn(net, frame):
     # Create a blob from the image and apply some pre-processing.
@@ -18,6 +19,7 @@ def detectFaceOpenCVDnn(net, frame):
     # Get Detections.
     detections = net.forward()
     return detections
+
 
 # Function for annotating the image with bounding boxes for each detected face.
 def process_detections(frame, detections, conf_threshold=0.5):
@@ -36,6 +38,7 @@ def process_detections(frame, detections, conf_threshold=0.5):
             cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), bb_line_thickness, cv2.LINE_8)
     return frame, bboxes
 
+
 # Function to load the DNN model.
 @st.cache(allow_output_mutation=True)
 def load_model():
@@ -52,6 +55,7 @@ def get_image_download_link(img, filename, text):
     img_str = base64.b64encode(buffered.getvalue()).decode()
     href = f'<a href="data:file/txt;base64,{img_str}" download="{filename}">{text}</a>'
     return href
+
 
 net = load_model()
 
