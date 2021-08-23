@@ -1,29 +1,26 @@
 import streamlit as st
 import cv2
 import numpy as np
-
 from PIL import Image
 from io import BytesIO
 import base64
 
+# Create application title and file uploader widget.
 st.title("OpenCV Deep Learning based Face Detection")
-uploaded_file = st.file_uploader("Choose a file", type=['jpg', 'jpeg', 'png'])
+img_file_buffer = st.file_uploader("Choose a file", type=['jpg', 'jpeg', 'png'])
 
-
-# Function for Detecting face and annotating with rectangles.
-def detectFaceOpenCVDnn(net, frame, conf_threshold=0.5):
-    # Create a copy of the image and find height and width.
-    frameOpencvDnn = frame.copy()
-    frame_h = frameOpencvDnn.shape[0]
-    frame_w = frameOpencvDnn.shape[1]
+# Function for detecting facses in an image.
+def detectFaceOpenCVDnn(net, frame):
     # Create a blob from the image and apply some pre-processing.
-    blob = cv2.dnn.blobFromImage(
-        frameOpencvDnn, 1.0, (300, 300), [104, 117, 123], False, False,
-    )
+    blob = cv2.dnn.blobFromImage(frame, 1.0, (300, 300), [104, 117, 123], False, False)
     # Set the blob as input to the model.
     net.setInput(blob)
     # Get Detections.
     detections = net.forward()
+    return detections
+
+# Function for annotating the image with bounding boxes for each detected face.
+def process_detections(frame, detections, conf_threshold=0.5):
     bboxes = []
     # Loop over all detections and draw bounding boxes around each face.
     for i in range(detections.shape[2]):
@@ -36,9 +33,8 @@ def detectFaceOpenCVDnn(net, frame, conf_threshold=0.5):
             bboxes.append([x1, y1, x2, y2])
             bb_line_thickness = max(1, int(round(frame_h / 150)))
             # Draw bounding boxes around detected faces.
-            cv2.rectangle(frameOpencvDnn, (x1, y1), (x2, y2), (0, 255, 0), bb_line_thickness, cv2.LINE_8)
-    return frameOpencvDnn, bboxes
-
+            cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), bb_line_thickness, cv2.LINE_8)
+    return frame, bboxes
 
 # Function to load the DNN model.
 @st.cache(allow_output_mutation=True)
@@ -57,12 +53,11 @@ def get_image_download_link(img, filename, text):
     href = f'<a href="data:file/txt;base64,{img_str}" download="{filename}">{text}</a>'
     return href
 
-
 net = load_model()
 
-if uploaded_file is not None:
+if img_file_buffer is not None:
     # Read the file and convert it to opencv Image.
-    raw_bytes = np.asarray(bytearray(uploaded_file.read()), dtype=np.uint8)
+    raw_bytes = np.asarray(bytearray(img_file_buffer.read()), dtype=np.uint8)
     # Loads image in a BGR channel order.
     image = cv2.imdecode(raw_bytes, cv2.IMREAD_COLOR)
 
@@ -75,13 +70,20 @@ if uploaded_file is not None:
     placeholders[0].image(image, channels='BGR')
     placeholders[0].text("Input Image")
 
-    # Create a Slider and Get the threshold from the slider.
+    # Create a Slider and get the threshold from the slider.
     conf_threshold = st.slider("SET Confidence Threshold", min_value=0.0, max_value=1.0, step=.01, value=0.5)
 
-    # Call the function to get detected faces.
-    out_image, _ = detectFaceOpenCVDnn(net, image, conf_threshold=conf_threshold)
+    # Create a copy of the image.
+    frame = image.copy()
+    frame_h = image.shape[0]
+    frame_w = image.shape[1]
 
-    # Display Detected Faces.
+    # Call the face detection model to detect faces in the image.
+    detections = detectFaceOpenCVDnn(net, frame)
+    # Process the detections based on the current confidence threshold.
+    out_image, bboxes = process_detections(frame, detections, conf_threshold=conf_threshold)
+
+    # Display Detected faces.
     placeholders[1].image(out_image, channels='BGR')
     placeholders[1].text("Output Image")
 
