@@ -24,6 +24,8 @@ def detectFaceOpenCVDnn(net, frame):
 # Function for annotating the image with bounding boxes for each detected face.
 def process_detections(frame, detections, conf_threshold=0.5):
     bboxes = []
+    frame_h = frame.shape[0]
+    frame_w = frame.shape[1]
     # Loop over all detections and draw bounding boxes around each face.
     for i in range(detections.shape[2]):
         confidence = detections[0, 0, i, 2]
@@ -66,7 +68,7 @@ if img_file_buffer is not None:
     image = cv2.imdecode(raw_bytes, cv2.IMREAD_COLOR)
 
     # Or use PIL Image (which uses an RGB channel order)
-    # image = np.array(Image.open(uploaded_file))
+    # image = np.array(Image.open(img_file_buffer))
 
     # Create placeholders to display input and output images.
     placeholders = st.columns(2)
@@ -80,10 +82,6 @@ if img_file_buffer is not None:
     # Call the face detection model to detect faces in the image.
     detections = detectFaceOpenCVDnn(net, image)
 
-    # Create a copy of the image.
-    frame = image.copy()
-    frame_h = image.shape[0]
-    frame_w = image.shape[1]
     # Process the detections based on the current confidence threshold.
     out_image, _ = process_detections(image, detections, conf_threshold=conf_threshold)
 
