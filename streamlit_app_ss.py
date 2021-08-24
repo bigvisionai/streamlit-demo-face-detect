@@ -40,6 +40,8 @@ def detectFaceOpenCVDnn(net, frame):
 # Function for annotating the image with bounding boxes for each detected face.
 def process_detections(frame, detections, conf_threshold=0.5):
     bboxes = []
+    frame_h = frame.shape[0]
+    frame_w = frame.shape[1]
     # Loop over all detections and draw bounding boxes around each face.
     for i in range(detections.shape[2]):
         confidence = detections[0, 0, i, 2]
@@ -49,7 +51,7 @@ def process_detections(frame, detections, conf_threshold=0.5):
             x2 = int(detections[0, 0, i, 5] * frame_w)
             y2 = int(detections[0, 0, i, 6] * frame_h)
             bboxes.append([x1, y1, x2, y2])
-            bb_line_thickness = max(1, int(round(frame_h / 150)))
+            bb_line_thickness = max(1, int(round(frame_h / 200)))
             # Draw bounding boxes around detected faces.
             cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), bb_line_thickness, cv2.LINE_8)
     return frame, bboxes
@@ -81,7 +83,7 @@ if img_file_buffer is not None:
     image = cv2.imdecode(raw_bytes, cv2.IMREAD_COLOR)
 
     # Or use PIL Image (which uses an RGB channel order)
-    # image = np.array(Image.open(uploaded_file))
+    # image = np.array(Image.open(img_file_buffer))
 
     # Create placeholders to display input and output images.
     placeholders = st.columns(2)
@@ -92,11 +94,6 @@ if img_file_buffer is not None:
     # Create a Slider and get the threshold from the slider.
     conf_threshold = st.slider("SET Confidence Threshold", min_value=0.0, max_value=1.0, step=.01, value=0.5)
 
-    # Create a copy of the image.
-    frame = image.copy()
-    frame_h = image.shape[0]
-    frame_w = image.shape[1]
-
     if USE_SS:
         # Check if the loaded image is "new", if so call the face detection model function.
         if img_file_buffer.id != ss.file_uploaded_id:
@@ -104,12 +101,12 @@ if img_file_buffer is not None:
             ss.file_uploaded_id = img_file_buffer.id
             # Save the detections in the session-state data structure (ss) for future use
             # with the current loaded image.
-            ss.detections = detectFaceOpenCVDnn(net, frame)
+            ss.detections = detectFaceOpenCVDnn(net, image)
         # Process the detections based on the current confidence threshold.
-        out_image, _ = process_detections(frame, ss.detections, conf_threshold=conf_threshold)
+        out_image, _ = process_detections(image, ss.detections, conf_threshold=conf_threshold)
     else:
-        detections = detectFaceOpenCVDnn(net, frame)
-        out_image, _ = process_detections(frame, detections, conf_threshold=conf_threshold)
+        detections = detectFaceOpenCVDnn(net, image)
+        out_image, _ = process_detections(image, detections, conf_threshold=conf_threshold)
 
     # Display Detected faces.
     placeholders[1].image(out_image, channels='BGR')
