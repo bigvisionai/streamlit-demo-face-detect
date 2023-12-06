@@ -5,15 +5,40 @@ from PIL import Image
 from io import BytesIO
 import base64
 
-# Create application title and file uploader widget.
+
+# Create application title
 st.title("OpenCV Deep Learning based Face Detection")
-img_file_buffer = st.file_uploader("Choose a file", type=['jpg', 'jpeg', 'png'])
+
+# List of example images
+example_images = [
+    "sample/faces.jpg",
+    "sample/dog.jpg",
+    # Add more images here
+]
+
+# Add a select box for examples
+example_selection = st.selectbox("Choose an example image:", ["None"] + example_images)
+
+# Function to load the DNN model.
+@st.cache_resource()
+def load_model():
+    modelFile = "res10_300x300_ssd_iter_140000_fp16.caffemodel"
+    configFile = "deploy.prototxt"
+    net = cv2.dnn.readNetFromCaffe(configFile, modelFile)
+    return net
 
 
-# Function for detecting facses in an image.
+# Function for detecting faces in an image.
 def detectFaceOpenCVDnn(net, frame):
     # Create a blob from the image and apply some pre-processing.
-    blob = cv2.dnn.blobFromImage(frame, 1.0, (300, 300), [104, 117, 123], False, False)
+    blob = cv2.dnn.blobFromImage(
+        frame,
+        1.0,
+        (300, 300),
+        [104, 117, 123],
+        False,
+        False,
+    )
     # Set the blob as input to the model.
     net.setInput(blob)
     # Get Detections.
@@ -41,15 +66,6 @@ def process_detections(frame, detections, conf_threshold=0.5):
     return frame, bboxes
 
 
-# Function to load the DNN model.
-@st.cache(allow_output_mutation=True)
-def load_model():
-    modelFile = "res10_300x300_ssd_iter_140000_fp16.caffemodel"
-    configFile = "deploy.prototxt"
-    net = cv2.dnn.readNetFromCaffe(configFile, modelFile)
-    return net
-
-
 # Function to generate a download link for output file.
 def get_image_download_link(img, filename, text):
     buffered = BytesIO()
@@ -59,38 +75,45 @@ def get_image_download_link(img, filename, text):
     return href
 
 
+# Handling of example selection
+if example_selection != "None":
+    # Load the selected example image
+    image = cv2.imread(example_selection, cv2.IMREAD_COLOR)
+else:
+    # File uploader for user's own image
+    img_file_buffer = st.file_uploader("Choose a file", type=["jpg", "jpeg", "png"])
+    if img_file_buffer is not None:
+        raw_bytes = np.asarray(bytearray(img_file_buffer.read()), dtype=np.uint8)
+        image = cv2.imdecode(raw_bytes, cv2.IMREAD_COLOR)
+    else:
+        # If no input provided
+        st.text("Please upload an image or select an example.")
+        st.stop()
+
+# Create placeholders to display input and output images.
+placeholders = st.columns(2)
+
+# Display Input image in the first placeholder.
+placeholders[0].image(image, channels="BGR")
+placeholders[0].text("Input Image")
+
+# Create a Slider and get the threshold from the slider.
+conf_threshold = st.slider("SET Confidence Threshold", min_value=0.0, max_value=1.0, step=0.01, value=0.5)
+
+# call the load_model function for model loading.
 net = load_model()
 
-if img_file_buffer is not None:
-    # Read the file and convert it to opencv Image.
-    raw_bytes = np.asarray(bytearray(img_file_buffer.read()), dtype=np.uint8)
-    # Loads image in a BGR channel order.
-    image = cv2.imdecode(raw_bytes, cv2.IMREAD_COLOR)
+# Call the face detection model to detect faces in the image.
+detections = detectFaceOpenCVDnn(net, image)
 
-    # Or use PIL Image (which uses an RGB channel order)
-    # image = np.array(Image.open(img_file_buffer))
+# Process the detections based on the current confidence threshold.
+out_image, _ = process_detections(image, detections, conf_threshold=conf_threshold)
 
-    # Create placeholders to display input and output images.
-    placeholders = st.columns(2)
-    # Display Input image in the first placeholder.
-    placeholders[0].image(image, channels='BGR')
-    placeholders[0].text("Input Image")
+# Display Detected faces.
+placeholders[1].image(out_image, channels="BGR")
+placeholders[1].text("Output Image")
 
-    # Create a Slider and get the threshold from the slider.
-    conf_threshold = st.slider("SET Confidence Threshold", min_value=0.0, max_value=1.0, step=.01, value=0.5)
-
-    # Call the face detection model to detect faces in the image.
-    detections = detectFaceOpenCVDnn(net, image)
-
-    # Process the detections based on the current confidence threshold.
-    out_image, _ = process_detections(image, detections, conf_threshold=conf_threshold)
-
-    # Display Detected faces.
-    placeholders[1].image(out_image, channels='BGR')
-    placeholders[1].text("Output Image")
-
-    # Convert opencv image to PIL.
-    out_image = Image.fromarray(out_image[:, :, ::-1])
-    # Create a link for downloading the output file.
-    st.markdown(get_image_download_link(out_image, "face_output.jpg", 'Download Output Image'),
-                unsafe_allow_html=True)
+# Convert opencv image to PIL.
+out_image = Image.fromarray(out_image[:, :, ::-1])
+# Create a link for downloading the output file.
+st.markdown(get_image_download_link(out_image, "face_output.jpg", "Download Output Image"), unsafe_allow_html=True)
